@@ -8,12 +8,16 @@ class Uploader {
 
     public $fileid = ''; // 附件id
     public $filePath; // 临时文件
+    public $saveName = ''; // 保存名字
     public $uploadPath; // 附件保存地址
+    public $targetDir;
+    public $uploadDir;
 
     public $_before_upload; // 上传前回调
     public $_after_upload; // 上传后回调
 
-    public $data; // 其他数据
+    public $data; // 回调数据
+    public $returnData = ''; // 响应数据
 
     /**
      * 上传附件
@@ -33,8 +37,8 @@ class Uploader {
         $_after_upload = $this->_after_upload;
 
         // Settings
-        $targetDir = C('attach.upload_tmp');
-        $uploadDir = C('attach.upload_dir');
+        $targetDir = $this->targetDir or C('attach.upload_tmp');
+        $uploadDir = $this->uploadDir or C('attach.upload_dir');
 
         // Create target dir
         if (!file_exists($targetDir)) {
@@ -59,13 +63,13 @@ class Uploader {
 
         $fileid = $this->fileid;
         $filePath = $this->filePath;
-        $uploadPath = $this->uploadPath;
 
-        if (!file_exists($uploadPath)) {
-            @mkdir($uploadPath, 0777, true);
+        if (!file_exists($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
         }
-        $uploadPath .= DIRECTORY_SEPARATOR . $fileid;
-        $this->data['path'] = $uploadPath;
+        $saveName = $this->saveName ? $this->saveName : uniqid() . '_' . $fileName;
+        $uploadPath = $uploadDir . DIRECTORY_SEPARATOR . $saveName;
+        $this->data['savePath'] = $uploadPath;
         // Chunking might be enabled
         $chunk = isset($_REQUEST["chunk"]) ? intval($_REQUEST["chunk"]) : 0;
         $chunks = isset($_REQUEST["chunks"]) ? intval($_REQUEST["chunks"]) : 1;
@@ -142,6 +146,6 @@ class Uploader {
             $_after_upload($this->data);
         }
         // Return Success JSON-RPC response
-        die('{"jsonrpc" : "2.0", "result" : "success", "id" : "'. $fileid . '", "created": "' . date("Y-m-d H:i") . '"}');
+        die($this->returnData ? $this->returnData : '{"jsonrpc" : "2.0", "result" : "success", "id" : "'. $fileid . '", "created": "' . date("Y-m-d H:i") . '"}');
     }
 }
